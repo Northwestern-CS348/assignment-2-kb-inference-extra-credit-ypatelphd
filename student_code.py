@@ -143,6 +143,58 @@ class KnowledgeBase(object):
         ####################################################
         # Student code goes here
 
+        rv = ""
+        if isinstance(fact_or_rule, Fact):
+            target = self._get_fact(fact_or_rule)
+            if (target == None):
+                rv = rv + "Fact is not in the KB\n"
+            else:
+                rv = self.recursive_explain(target, 0)
+        elif isinstance(fact_or_rule, Rule):
+            target = self._get_rule(fact_or_rule)
+            if (target == None):
+                rv = rv + "Rule is not in the KB\n"
+            else:
+                rv = self.recursive_explain(target, 0)
+        else:
+            return False
+
+        return rv
+
+
+    def recursive_explain(self, fact_or_rule, indent_depth):
+
+        rv = ""
+        indent = (" " * (indent_depth*4))
+        if (isinstance(fact_or_rule, Fact)):
+            rv = rv + indent + "fact: " + str(fact_or_rule.statement)
+        else:
+            rv = rv + indent + "rule: ("
+            for stmt in fact_or_rule.lhs:
+                rv = rv + str(stmt) + ", "
+            rv = rv[:-2]
+            rv = rv + ") -> " + str(fact_or_rule.rhs)
+
+        if (fact_or_rule.asserted):
+            rv = rv + " ASSERTED"
+        rv = rv + "\n"
+
+        for support in fact_or_rule.supported_by:
+            rv = rv + indent + "  SUPPORTED BY\n"
+
+            # Each support is a pair (list) of a fact and a rule. Let's process the not-rule first
+            support0 = support[0]
+            support1 = support[1]
+
+            if (isinstance(support0, Fact)):
+                rv = rv + self.recursive_explain(self._get_fact(support0), indent_depth + 1)
+                rv = rv + self.recursive_explain(self._get_rule(support1), indent_depth + 1)
+            else:
+                rv = rv + self.recursive_explain(self._get_fact(support1), indent_depth + 1)
+                rv = rv + self.recursive_explain(self._get_rule(support0), indent_depth + 1)
+
+        return rv
+
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
